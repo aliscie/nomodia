@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-
+use ic_cdk_macros;
 use candid::{CandidType, Deserialize};
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
 use ic_stable_memory::{
@@ -65,3 +65,24 @@ fn inc() {
 fn set(value: u32) {
     STATE.with(|s| s.borrow_mut().as_mut().unwrap().counter = value)
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    // use crate::friends::Friend;
+    // use crate::user::User;
+    use ic_cdk::caller;
+
+    #[test]
+    fn test_one() {
+        // println!("test_one {}", caller().to_string());
+    }
+}
+
+fn backend_wasm() -> Vec<u8> {
+    let wasm_path = std::env::var_os("backend_WASM").expect("Missing counter wasm file");
+    std::fs::read(wasm_path).unwrap()
+}
+
+// ic_cdk_macros::export_candid!();
