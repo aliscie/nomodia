@@ -1,19 +1,23 @@
-import { useEffect, useState } from 'react';
 import './App.css';
-import rustLogo from './assets/rust.svg';
-import reactLogo from './assets/react.svg';
-import { backend } from './declarations/backend';
-import { BackendProvider, useBackendContext } from './utils/backendContext';
-import HomePage from '@/compnents/homePage';
+import {BackendProvider} from './utils/backendContext';
+import Index from '@/compnents/homePage';
+import ThemeProvider from "@/compnents/themeProvider";
+import LeftNav from "@/compnents/leftNav";
+import Footer from "@/compnents/footer";
 
 function App() {
 
 
-  return (
-    <BackendProvider>
-      <HomePage />
-    </BackendProvider>
-  );
+    return (
+        <ThemeProvider>
+            <LeftNav>
+                <BackendProvider>
+                    <Index/>
+                </BackendProvider>
+                <Footer/>
+            </LeftNav>
+        </ThemeProvider>
+    );
 }
 
 export default App;

@@ -14,11 +14,8 @@ import {
   HttpAgent,
   Identity,
 } from '@dfinity/agent';
-import { canisterId, idlFactory } from '../declarations/backend';
-import { _SERVICE } from '../declarations/backend/backend.did';
-// import { useDispatch, useSelector } from "react-redux";
-// import { handleRedux } from "./redux/store/handleRedux";
-// import getLedgerActor from "./ckudc_ledger_actor";
+import { canisterId, idlFactory } from '@/declarations/backend';
+import { _SERVICE } from '@/declarations/backend/backend.did';
 
 interface State {
   principal: string | null;
