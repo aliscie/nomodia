@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { ContentSection, NewSection } from './types';
 import ContentCard from "@/compnents/homePage/contentCard";
 import ContentDialog from "@/compnents/homePage/contentDialog";
+import { generateVideoMetadata } from "@/utils/generate_content_deitals";
 
-// Constants
 const PLATFORMS = [
     { value: 'twitter', label: 'Twitter/X', icon: 'Twitter' },
     { value: 'youtube', label: 'YouTube', icon: 'YouTube' },
@@ -24,10 +24,11 @@ const defaultNewSection: NewSection = {
 
 interface ContentPlannerProps {
     transcript?: string | null;
+    initialMetadata?: any;
 }
 
-// Custom hook for managing sections
-const useSections = () => {
+// Custom hook for managing sections and transcript state
+const useSections = (transcript: string | null) => {
     const [sections, setSections] = useState<ContentSection[]>(() => {
         try {
             const savedSections = localStorage.getItem('contentSections');
@@ -38,6 +39,39 @@ const useSections = () => {
         }
     });
 
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [lastProcessedTranscript, setLastProcessedTranscript] = useState<string | null>(null);
+
+    const updateSectionsWithTranscript = async (newTranscript: string) => {
+        setIsUpdating(true);
+        try {
+            const updatedSections = await Promise.all(
+                sections.map(async (section) => {
+                    try {
+                        const prompt = `platform target:${section.platform} ,Goal: ${section.goal}\n\nTranscript: ${newTranscript}`;
+                        const newMetadata = await generateVideoMetadata(prompt);
+                        return {
+                            ...section,
+                            title: newMetadata.title || section.title,
+                            description: newMetadata.description || section.description,
+                            tags: newMetadata.tags || section.tags
+                        };
+                    } catch (error) {
+                        console.error(`Error updating section ${section.id}:`, error);
+                        return section;
+                    }
+                })
+            );
+            setSections(updatedSections);
+            setLastProcessedTranscript(newTranscript);
+        } catch (error) {
+            console.error('Error updating sections:', error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    // Save sections to localStorage when they change
     useEffect(() => {
         try {
             localStorage.setItem('contentSections', JSON.stringify(sections));
@@ -46,15 +80,42 @@ const useSections = () => {
         }
     }, [sections]);
 
-    return { sections, setSections };
+    return { sections, setSections, isUpdating, lastProcessedTranscript, updateSectionsWithTranscript };
 };
 
-const ContentPlanner: React.FC<ContentPlannerProps> = ({ transcript }) => {
-    const { sections, setSections } = useSections();
+const ContentPlanner: React.FC<ContentPlannerProps> = ({ transcript, initialMetadata }) => {
+    console.log({transcript})
+    const {
+        sections,
+        setSections,
+        isUpdating,
+        lastProcessedTranscript,
+        updateSectionsWithTranscript
+    } = useSections(transcript);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingSection, setEditingSection] = useState<ContentSection | null>(null);
 
-    const handleAddSection = (newSectionData: NewSection) => {
+    // Watch for transcript changes and update sections
+    useEffect(() => {
+        if (transcript && transcript !== lastProcessedTranscript) {
+            updateSectionsWithTranscript(transcript);
+        }
+    }, [transcript, lastProcessedTranscript, updateSectionsWithTranscript]);
+
+    // Handle adding initial metadata section if provided
+    useEffect(() => {
+        if (initialMetadata && transcript && sections.length === 0) {
+            handleAddSection({
+                platform: '',
+                goal: '',
+                title: initialMetadata.title || '',
+                description: initialMetadata.description || '',
+                tags: initialMetadata.tags || [],
+            });
+        }
+    }, [initialMetadata, transcript]);
+
+    const handleAddSection = async (newSectionData: NewSection) => {
         const section: ContentSection = {
             id: Date.now().toString(),
             ...newSectionData,
@@ -89,13 +150,22 @@ const ContentPlanner: React.FC<ContentPlannerProps> = ({ transcript }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h5">Content Planner</Typography>
-                <Button 
-                    variant="contained" 
+                <Button
+                    variant="contained"
                     onClick={() => setIsDialogOpen(true)}
                 >
                     Create New Content
                 </Button>
             </Box>
+
+            {isUpdating && (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, py: 2 }}>
+                    <CircularProgress size={24} />
+                    <Typography variant="body2" color="text.secondary">
+                        Updating content with new transcript...
+                    </Typography>
+                </Box>
+            )}
 
             <Box sx={{
                 display: 'grid',
@@ -138,6 +208,7 @@ const ContentPlanner: React.FC<ContentPlannerProps> = ({ transcript }) => {
                 editingSection={editingSection}
                 platforms={PLATFORMS}
                 defaultValues={defaultNewSection}
+                transcript={transcript}
             />
         </Box>
     );

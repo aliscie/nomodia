@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -10,8 +10,10 @@ import {
     MenuItem,
     useTheme,
     useMediaQuery,
+    CircularProgress,
 } from '@mui/material';
-import { ContentSection, NewSection } from './types';
+import {ContentSection, NewSection} from './types';
+import {generateVideoMetadata} from "@/utils/generate_content_deitals";
 
 interface Platform {
     value: string;
@@ -26,10 +28,12 @@ interface ContentDialogProps {
     editingSection: ContentSection | null;
     platforms: Platform[];
     defaultValues: NewSection;
+    transcript?: string | null;
 }
 
 const useFormData = (editingSection: ContentSection | null, defaultValues: NewSection) => {
     const [formData, setFormData] = useState<NewSection>(defaultValues);
+    const [tagInput, setTagInput] = useState('');
 
     useEffect(() => {
         if (editingSection) {
@@ -40,38 +44,35 @@ const useFormData = (editingSection: ContentSection | null, defaultValues: NewSe
                 description: editingSection.description,
                 tags: editingSection.tags,
             });
+            setTagInput(editingSection.tags.join(', '));
         } else {
             setFormData(defaultValues);
+            setTagInput('');
         }
     }, [editingSection, defaultValues]);
 
-    return { formData, setFormData };
+    return {formData, setFormData, tagInput, setTagInput};
 };
 
 const ContentDialog: React.FC<ContentDialogProps> = ({
-    open,
-    onClose,
-    onSubmit,
-    editingSection,
-    platforms,
-    defaultValues,
-}) => {
+                                                         open,
+                                                         onClose,
+                                                         onSubmit,
+                                                         editingSection,
+                                                         platforms,
+                                                         defaultValues,
+                                                         transcript,
+                                                     }) => {
     const theme = useTheme();
     const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-    const { formData, setFormData } = useFormData(editingSection, defaultValues);
+    const {formData, setFormData, tagInput, setTagInput} = useFormData(editingSection, defaultValues);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleInputChange = (field: keyof NewSection) => (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
         if (field === 'tags') {
-            const tagsArray = event.target.value
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag !== '');
-            setFormData(prev => ({
-                ...prev,
-                tags: tagsArray
-            }));
+            setTagInput(event.target.value);
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -80,18 +81,69 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const processFormData = () => {
+        // Process tags only during submission
+        const processedTags = tagInput
+            .split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '');
+
+        return {
+            ...formData,
+            tags: processedTags
+        };
+    };
+
+    const handleRegenerate = async () => {
+        if (!transcript) {
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const contentDetails = await generateVideoMetadata(
+                `platform target:${formData.platform} ,Goal: ${formData.goal}\n\nTranscript: ${transcript}`
+            );
+
+            setFormData(prev => ({
+                ...prev,
+                title: contentDetails.title || prev.title,
+                description: contentDetails.description || prev.description,
+            }));
+            setTagInput(contentDetails.tags?.join(', ') || tagInput);
+        } catch (error) {
+            console.error('Error regenerating metadata:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (editingSection) {
+        const processedData = processFormData();
+
+        try {
             onSubmit({
-                ...formData,
+                ...processedData,
                 id: editingSection.id,
                 timestamp: editingSection.timestamp,
             });
-        } else {
-            onSubmit(formData);
+
+        } catch (error) {
+            console.error('Error generating metadata:', error);
+            if (editingSection) {
+                onSubmit({
+                    ...processedData,
+                    id: editingSection.id,
+                    timestamp: editingSection.timestamp,
+                });
+            } else {
+                onSubmit(processedData);
+            }
+        } finally {
+            setIsLoading(false);
+            onClose();
         }
-        onClose();
     };
 
     return (
@@ -158,21 +210,32 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
                         <TextField
                             fullWidth
                             label="Tags"
-                            value={formData.tags.join(', ')}
+                            value={tagInput}
                             onChange={handleInputChange('tags')}
                             helperText="Enter tags separated by commas"
                         />
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
+                <DialogActions sx={{p: 2}}>
                     <Button onClick={onClose} color="inherit">
                         Cancel
                     </Button>
+                    {transcript && (
+                        <Button
+                            onClick={handleRegenerate}
+                            color="secondary"
+                            disabled={isLoading}
+                            startIcon={isLoading ? <CircularProgress size={20}/> : null}
+                        >
+                            Regenerate
+                        </Button>
+                    )}
                     <Button
                         type="submit"
                         variant="contained"
                         color="primary"
-                        disabled={!formData.title.trim() || !formData.description.trim()}
+                        disabled={!formData.title.trim() || !formData.description.trim() || isLoading}
+                        startIcon={isLoading ? <CircularProgress size={20}/> : null}
                     >
                         {editingSection ? 'Update' : 'Create'}
                     </Button>

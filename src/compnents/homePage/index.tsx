@@ -5,6 +5,7 @@ import transcribeVideo from "@/utils/transcripter";
 import VideoUpload from "@/compnents/homePage/uploadVideo";
 import ContentPlanner from "@/compnents/homePage/contentPlanner";
 import TranscriptComponent from "@/compnents/homePage/transcriptViewer";
+import {generateVideoMetadata} from "@/utils/generate_content_deitals";
 
 interface VideoData {
     videoUrl: string | null;
@@ -44,16 +45,7 @@ function Index() {
         });
     };
 
-    const fetchCount = async () => {
-        try {
-            setLoading(true);
-            const count = await backendActor.get();
-            setCount(count);
-        } catch (err) {
-            console.error('Error fetching count:', err);
-        } finally {
-            setLoading(false);
-        }
+    const callAsync = async () => {
     };
 
     const handleVideoUpload = async (file: File) => {
@@ -64,10 +56,17 @@ function Index() {
             const videoUrl = await fileToBase64(file);
             const transcript = await transcribeVideo(file);
 
+            // Generate initial metadata after successful transcription
+            console.log({transcript})
+            const initialMetadata = await generateVideoMetadata(
+                `Transcript: ${transcript}`
+            );
+
             const newVideoData = {
                 videoUrl,
                 transcript,
-                videoName: file.name
+                videoName: file.name,
+                initialMetadata // Store the initial metadata
             };
 
             setVideoData(newVideoData);
@@ -83,7 +82,7 @@ function Index() {
     };
 
     useEffect(() => {
-        fetchCount();
+        callAsync();
     }, []);
 
     const getVideoFile = (): File | null => {
@@ -137,7 +136,10 @@ function Index() {
             )}
 
             <Box sx={{mt: 4}}>
-                <ContentPlanner transcript={videoData.transcript}/>
+                <ContentPlanner
+                    transcript={videoData.transcript}
+                    initialMetadata={videoData.initialMetadata}
+                />
             </Box>
         </Box>
     );
