@@ -15,18 +15,9 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import PeopleIcon from '@mui/icons-material/People';
 import PlaceIcon from '@mui/icons-material/Place';
 import PersonIcon from '@mui/icons-material/Person';
+import HomePage from "@/pages/HomePage";
 
 // Home Page Component
-const HomePage = () => {
-  return (
-    <Container>
-      <Box sx={{ p: 2 }}>
-        <h1>Home Page</h1>
-        <p>Welcome to our mobile app!</p>
-      </Box>
-    </Container>
-  );
-};
 
 // Quiz Page Component
 const QuizPage = () => {
