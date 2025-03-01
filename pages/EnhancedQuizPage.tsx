@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Container, Typography, Card, Button, Stack, CircularProgress, LinearProgress } from '@mui/material';
 import { motion, PanInfo, useAnimation } from 'framer-motion';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getEventsFromGemini } from '../src/utils/geminiAgent';
 
 // Define the quiz types for internal tracking
 type QuizType = 'spiralDynamics' | 'emotionalScale' | 'geminiGenerated';
@@ -245,10 +246,29 @@ const EnhancedQuizPage = () => {
       }
     }, 300);
   };
-
-  const resetQuiz = () => {
+  const [loading, setLoading] = useState(false);
+  const resetQuiz = async () => {
+    setLoading(true);
     // Clear saved progress from localStorage
     localStorage.removeItem('quizProgress');
+    
+    try {
+      // Get new questions from Gemini
+      const prompt = "Generate 10 introspective questions about personal growth, life goals, and emotional intelligence. Format each question to start with 'Do you' and be answerable with yes/no.";
+      const events = await getEventsFromGemini(prompt);
+      
+      // Extract questions from events descriptions
+      const newGeneralQuestions = events.slice(0, 10).map(event => 
+        event.description.startsWith('Do you') ? event.description : `Do you ${event.description.toLowerCase()}`
+      );
+      
+      // Update fixedGeneralQuestions with new ones
+      fixedGeneralQuestions.splice(0, fixedGeneralQuestions.length, ...newGeneralQuestions);
+    } catch (error) {
+      console.error('Error generating new questions:', error);
+      // If there's an error, we'll use the existing questions
+    }
+    setLoading(false);
     initializeQuiz();
   };
 
@@ -628,9 +648,9 @@ const EnhancedQuizPage = () => {
               </Stack>
               
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                <Button variant="contained" onClick={resetQuiz}>
-                  Take Assessment Again
-                </Button>
+                {!loading?<Button variant="contained" onClick={resetQuiz}>
+                  Take New Quiz
+                </Button>:"loading..."}
               </Box>
             </Card>
           </Box>

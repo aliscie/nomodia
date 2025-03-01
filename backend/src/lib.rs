@@ -68,6 +68,12 @@ fn set(value: u32) {
 
 
 
+#[query]
+fn helo_world() -> String {
+    return "Hello World".to_string();
+}
+
+
 #[cfg(test)]
 mod tests {
     // use crate::friends::Friend;
