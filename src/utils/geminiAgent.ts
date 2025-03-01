@@ -84,8 +84,8 @@ function createStructuredPrompt(basePrompt: string): string {
     [{
       "title": "Event Name",
       "description": "Event description",
-      "startDateTime": "2023-06-15T10:00:00",
-      "endDateTime": "2023-06-15T12:00:00",
+      "startDateTime": "2025-06-15T10:00:00",
+      "endDateTime": "2025-06-15T12:00:00",
       "attendees": 50,
       "spiralLevel": "Blue",
       "emotionalLevel": 15,
@@ -299,6 +299,7 @@ export async function getUbudBaliEvents(): Promise<GeminiEvent[]> {
  */
 function createMockEvents(count: number): GeminiEvent[] {
   const events: GeminiEvent[] = [];
+  // Ensure we're using the current year (2025)
   const today = new Date();
   
   const eventTitles = [

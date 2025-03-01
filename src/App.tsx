@@ -16,20 +16,11 @@ import PeopleIcon from '@mui/icons-material/People';
 import PlaceIcon from '@mui/icons-material/Place';
 import PersonIcon from '@mui/icons-material/Person';
 import HomePage from "@/pages/HomePage";
+import { GoogleAuthProvider } from "./services/googleAuthService";
+import ProfilePage from './pages/ProfilePage';
+import EnhancedQuizPage from '../pages/EnhancedQuizPage';
 
 // Home Page Component
-
-// Quiz Page Component
-const QuizPage = () => {
-  return (
-    <Container>
-      <Box sx={{ p: 2 }}>
-        <h1>Quiz Page</h1>
-        <p>Take a quiz here!</p>
-      </Box>
-    </Container>
-  );
-};
 
 // People Page Component
 const PeoplePage = () => {
@@ -55,17 +46,7 @@ const PlacesPage = () => {
   );
 };
 
-// Profile Page Component
-const ProfilePage = () => {
-  return (
-    <Container>
-      <Box sx={{ p: 2 }}>
-        <h1>Profile Page</h1>
-        <p>Your profile information</p>
-      </Box>
-    </Container>
-  );
-};
+
 
 // Theme Hook
 const useAppTheme = () => {
@@ -128,7 +109,7 @@ const App = () => {
       case 0:
         return <HomePage />;
       case 1:
-        return <QuizPage />;
+        return <EnhancedQuizPage />;
       case 2:
         return <PeoplePage />;
       case 3:
@@ -143,10 +124,12 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ pb: 7 }}>
-        {renderContent()}
-        <BottomNav value={navValue} onChange={handleNavChange} />
-      </Box>
+      <GoogleAuthProvider>
+        <Box sx={{ pb: 7 }}>
+          {renderContent()}
+          <BottomNav value={navValue} onChange={handleNavChange} />
+        </Box>
+      </GoogleAuthProvider>
     </ThemeProvider>
   );
 };

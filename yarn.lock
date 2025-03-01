@@ -979,6 +979,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-oauth/google@npm:^0.12.1":
+  version: 0.12.1
+  resolution: "@react-oauth/google@npm:0.12.1"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 10c0/fe23e3c0a4d0b9999fcd7b932b1a42bf94fdab526473931d780d08742455b8861fc647857b3b491e258ecef4a407dbf7321440c0d00890e23059d487795f92fb
+  languageName: node
+  linkType: hard
+
 "@scure/base@npm:~1.2.2, @scure/base@npm:~1.2.4":
   version: 1.2.4
   resolution: "@scure/base@npm:1.2.4"
@@ -2787,6 +2797,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jwt-decode@npm:3.1.2":
+  version: 3.1.2
+  resolution: "jwt-decode@npm:3.1.2"
+  checksum: 10c0/a951547946b5e8b1d9df818152d6b1dbaf13eebb3a6e6daceedf888968f5d255959852c8188aae2c825dc9104a99d25cb6c23f25d76545d1aa0315b968b6912e
+  languageName: node
+  linkType: hard
+
 "lines-and-columns@npm:^1.1.6":
   version: 1.2.4
   resolution: "lines-and-columns@npm:1.2.4"
@@ -4219,6 +4236,7 @@ __metadata:
     "@huggingface/inference": "npm:^3.1.5"
     "@mui/icons-material": "npm:^6.4.1"
     "@mui/material": "npm:^6.4.1"
+    "@react-oauth/google": "npm:^0.12.1"
     "@types/node": "npm:^22.12.0"
     "@types/react": "npm:^19.0.8"
     "@types/react-dom": "npm:^19.0.3"
@@ -4226,6 +4244,7 @@ __metadata:
     "@vitejs/plugin-react": "npm:^2.2.0"
     dotenv: "npm:^16.4.5"
     framer-motion: "npm:^12.4.7"
+    jwt-decode: "npm:3.1.2"
     npm-run-all: "npm:^4.1.5"
     prettier: "npm:^2.8.2"
     react: "npm:^18.3.1"

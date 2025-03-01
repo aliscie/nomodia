@@ -23,8 +23,8 @@ const EventList: React.FC = () => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const data = await getUbudBaliEvents();
-        setEvents(data);
+        // const data = await getUbudBaliEvents();
+        // setEvents(data);
       } catch (err) {
         setError('Failed to fetch events. Please try again later.');
         console.error('Error fetching events:', err);
@@ -68,7 +68,7 @@ const EventList: React.FC = () => {
   if (events.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', my: 4 }}>
-        <Typography>No events found. Please check your API key configuration.</Typography>
+        <Typography>No events found</Typography>
       </Box>
     );
   }
