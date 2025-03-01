@@ -1,3 +1,7 @@
+mod user;
+
+pub use user::*;
+
 use std::cell::RefCell;
 use ic_cdk_macros;
 use candid::{CandidType, Deserialize};
@@ -67,7 +71,6 @@ fn set(value: u32) {
 }
 
 
-
 #[query]
 fn helo_world() -> String {
     return "Hello World".to_string();
@@ -78,11 +81,35 @@ fn helo_world() -> String {
 mod tests {
     // use crate::friends::Friend;
     // use crate::user::User;
-    use ic_cdk::caller;
+    use crate::{Emotion, Spiral, User};
 
     #[test]
     fn test_one() {
-        // println!("test_one {}", caller().to_string());
+        let initial_emotion: Emotion = [0.05; 21];  // Neutral emotional state
+        let initial_spiral: Spiral = [0.12, 0.18, 0.25, 0.15, 0.10, 0.08, 0.07, 0.05];
+
+        let mut user = User::new(
+            "user_123".to_string(),
+            "user@nomodia.com".to_string(),
+            "Nomodiac".to_string(),
+            "@nomodiac".to_string(),
+            "@nomodiac".to_string(),
+            "@nomodiac".to_string(),
+            initial_emotion,
+            initial_spiral,
+        );
+
+        println!("Initial hybrid scores:");
+        println!("Emotion: {:.2}", user.current_emotion_hybrid);
+        println!("Spiral: {:.2}", user.current_spiral_hybrid);
+
+        // Update emotional state
+        let new_emotion: Emotion = [0.08; 21];
+        user.update_emotion(new_emotion);
+
+        println!("\nAfter emotional update:");
+        println!("Emotion: {:.2}", user.current_emotion_hybrid);
+        println!("History entries: {}", user.emotion_history.len());
     }
 }
 
