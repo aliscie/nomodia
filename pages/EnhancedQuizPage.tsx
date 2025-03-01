@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Container, Typography, Card, Button, Stack, CircularProgress } from '@mui/material';
+import { Box, Container, Typography, Card, Button, Stack, CircularProgress, LinearProgress } from '@mui/material';
 import { motion, PanInfo, useAnimation } from 'framer-motion';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+
 
 // Define the quiz types for internal tracking
 type QuizType = 'spiralDynamics' | 'emotionalScale' | 'geminiGenerated';
@@ -52,16 +52,28 @@ const EnhancedQuizPage = () => {
     "Do you regularly experience joy, empowerment, freedom, love, or appreciation?", // Level 22
   ];
 
+  // Fixed set of general questions for all users (replacing Gemini-generated questions)
+  const fixedGeneralQuestions = [
+    "Do you feel connected to a larger purpose in life?",
+    "Do you often find yourself thinking about the future?",
+    "Do you prioritize harmony in your relationships?",
+    "Do you feel energized when solving complex problems?",
+    "Do you often experience a sense of wonder about the world?",
+    "Do you feel that your emotional state affects your daily decisions?",
+    "Do you find it easy to adapt to new situations?",
+    "Do you prefer structured environments with clear rules?",
+    "Do you feel that your current life aligns with your values?",
+    "Do you often feel a sense of gratitude for what you have?"
+  ];
+
   // State variables
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [spiralAnswers, setSpiralAnswers] = useState<boolean[]>(Array(spiralDiagnosisQuestions.length).fill(false));
   const [emotionalAnswers, setEmotionalAnswers] = useState<boolean[]>(Array(emotionalScaleQuestions.length).fill(false));
-  const [geminiAnswers, setGeminiAnswers] = useState<boolean[]>([]);
+  const [generalAnswers, setGeneralAnswers] = useState<boolean[]>(Array(fixedGeneralQuestions.length).fill(false));
   const [quizCompleted, setQuizCompleted] = useState(false);
-  const [geminiQuestions, setGeminiQuestions] = useState<string[]>([]);
-  const [isLoadingGemini, setIsLoadingGemini] = useState(false);
-  const [geminiError, setGeminiError] = useState<string | null>(null);
   const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(true);
   const controls = useAnimation();
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -76,13 +88,7 @@ const EnhancedQuizPage = () => {
   };
 
   // Initialize or reset the quiz with shuffled questions
-  const initializeQuiz = async () => {
-    // First, ensure we have Gemini questions
-    if (geminiQuestions.length === 0) {
-      await generateGeminiQuestions();
-      return; // generateGeminiQuestions will call initializeQuiz again when done
-    }
-    
+  const initializeQuiz = () => {
     // Create question objects with their source type
     const spiralQs = spiralDiagnosisQuestions.map((q, i) => ({
       text: q,
@@ -96,14 +102,14 @@ const EnhancedQuizPage = () => {
       originalIndex: i
     }));
     
-    const geminiQs = geminiQuestions.map((q, i) => ({
+    const generalQs = fixedGeneralQuestions.map((q, i) => ({
       text: q,
-      type: 'geminiGenerated' as QuizType,
+      type: 'geminiGenerated' as QuizType, // Keep the same type for compatibility
       originalIndex: i
     }));
     
     // Combine all questions
-    const allQuestions = [...spiralQs, ...emotionalQs, ...geminiQs];
+    const allQuestions = [...spiralQs, ...emotionalQs, ...generalQs];
     
     // Shuffle the combined questions
     const shuffled = shuffleArray(allQuestions);
@@ -114,7 +120,7 @@ const EnhancedQuizPage = () => {
     // Reset answers
     setSpiralAnswers(Array(spiralDiagnosisQuestions.length).fill(false));
     setEmotionalAnswers(Array(emotionalScaleQuestions.length).fill(false));
-    setGeminiAnswers(Array(geminiQuestions.length).fill(false));
+    setGeneralAnswers(Array(fixedGeneralQuestions.length).fill(false));
     
     // Reset current question index
     setCurrentQuestionIndex(0);
@@ -126,71 +132,28 @@ const EnhancedQuizPage = () => {
     controls.start({ x: 0, opacity: 1 });
   };
 
-  // Generate Gemini questions
-  const generateGeminiQuestions = async () => {
-    setIsLoadingGemini(true);
-    setGeminiError(null);
+  // Calculate the emotional scale score (1-22)
+  const calculateEmotionalScore = () => {
+    // Count yes answers and their positions
+    const yesAnswers = emotionalAnswers.reduce((acc, answer, index) => {
+      if (answer) acc.push(index + 1); // +1 because emotional scale is 1-22
+      return acc;
+    }, [] as number[]);
 
-    try {
-      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-      
-      if (!API_KEY) {
-        throw new Error('Gemini API key is missing. Please add it to your environment variables.');
-      }
+    if (yesAnswers.length === 0) return 0;
 
-      const genAI = new GoogleGenerativeAI(API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // Calculate average emotional level
+    const sum = yesAnswers.reduce((acc, level) => acc + level, 0);
+    return Math.round(sum / yesAnswers.length);
+  };
 
-      const prompt = `Based on the Nomodia platform's assessment methodology, generate 10 questions that help diagnose a person's position on both the spiral dynamics model and the 22-point emotional scale.
-
-The questions should be in a yes/no format and should help determine:
-1. The user's spiral dynamics level (Beige, Purple, Red, Blue, Orange, Green, Yellow, Turquoise)
-2. The user's emotional scale position (1-22, where 1 is Fear/Grief/Depression/Despair and 22 is Joy/Knowledge/Empowerment/Freedom/Love/Appreciation)
-
-Format each question as a direct question that can be answered with yes or no. Do not include any explanations or labels with the questions. Return ONLY an array of 10 questions in JSON format.`;
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Extract JSON from the response
-      const jsonMatch = text.match(/\[\s*".*"\s*\]/) || 
-                       text.match(/```json\n([\s\S]*?)\n```/) || 
-                       text.match(/```([\s\S]*?)```/);
-      
-      if (jsonMatch) {
-        const jsonString = jsonMatch[1] || jsonMatch[0];
-        const questions = JSON.parse(jsonString);
-        
-        if (Array.isArray(questions) && questions.length > 0) {
-          setGeminiQuestions(questions);
-        } else {
-          throw new Error('Failed to generate valid questions');
-        }
-      } else {
-        throw new Error('Failed to parse Gemini response');
-      }
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      setGeminiError(error instanceof Error ? error.message : 'Failed to generate questions');
-      // Fallback questions if Gemini fails
-      setGeminiQuestions([
-        "Do you feel connected to a larger purpose in life?",
-        "Do you often find yourself thinking about the future?",
-        "Do you prioritize harmony in your relationships?",
-        "Do you feel energized when solving complex problems?",
-        "Do you often experience a sense of wonder about the world?",
-        "Do you feel that your emotional state affects your daily decisions?",
-        "Do you find it easy to adapt to new situations?",
-        "Do you prefer structured environments with clear rules?",
-        "Do you feel that your current life aligns with your values?",
-        "Do you often feel a sense of gratitude for what you have?"
-      ]);
-    } finally {
-      setIsLoadingGemini(false);
-      // After getting Gemini questions, initialize the quiz
-      initializeQuiz();
-    }
+  // Calculate spiral dynamics scores for each level
+  const calculateSpiralScores = () => {
+    const spiralLevels = ['Beige', 'Purple', 'Red', 'Blue', 'Orange', 'Green', 'Yellow', 'Turquoise'];
+    const scores = spiralLevels.map((_, index) => {
+      return spiralAnswers[index] ? 1 : 0;
+    });
+    return scores;
   };
 
   // Effect to initialize the quiz when component mounts
@@ -233,9 +196,9 @@ Format each question as a direct question that can be answered with yes or no. D
         setEmotionalAnswers(newEmotionalAnswers);
         break;
       case 'geminiGenerated':
-        const newGeminiAnswers = [...geminiAnswers];
-        newGeminiAnswers[currentQuestion.originalIndex] = answer;
-        setGeminiAnswers(newGeminiAnswers);
+        const newGeneralAnswers = [...generalAnswers];
+        newGeneralAnswers[currentQuestion.originalIndex] = answer;
+        setGeneralAnswers(newGeneralAnswers);
         break;
     }
     
@@ -324,10 +287,10 @@ Format each question as a direct question that can be answered with yes or no. D
     return `Your emotional scale level: ${average}/22 - ${category}`;
   };
   
-  const interpretGeminiResults = () => {
-    // For Gemini results, we'll provide a more general interpretation
-    const yesCount = geminiAnswers.filter(answer => answer).length;
-    const totalQuestions = geminiQuestions.length;
+  const interpretGeneralResults = () => {
+    // For general results, we'll provide a general interpretation
+    const yesCount = generalAnswers.filter(answer => answer).length;
+    const totalQuestions = fixedGeneralQuestions.length;
     const positivityScore = Math.round((yesCount / totalQuestions) * 100);
     
     let interpretation = '';
@@ -349,31 +312,7 @@ Format each question as a direct question that can be answered with yes or no. D
           Nomodia Comprehensive Assessment
         </Typography>
         
-        {isLoadingGemini ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', my: 8 }}>
-            <CircularProgress />
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              Generating personalized questions...
-            </Typography>
-          </Box>
-        ) : geminiError && geminiQuestions.length === 0 ? (
-          <Box sx={{ my: 4, p: 3, bgcolor: '#ffebee', borderRadius: 2 }}>
-            <Typography variant="h6" color="error" gutterBottom>
-              Error generating questions
-            </Typography>
-            <Typography variant="body1">
-              {geminiError}
-            </Typography>
-            <Button 
-              variant="contained" 
-              color="primary"
-              onClick={generateGeminiQuestions}
-              sx={{ mt: 2 }}
-            >
-              Try Again
-            </Button>
-          </Box>
-        ) : !quizCompleted ? (
+        {!quizCompleted ? (
           <>
             <Box sx={{ position: 'relative', width: '100%', height: 300, my: 4 }}>
               {shuffledQuestions.length > 0 && (
@@ -448,11 +387,133 @@ Format each question as a direct question that can be answered with yes or no. D
               </Typography>
               
               <Typography variant="h6" gutterBottom>
-                AI-Generated Assessment Results
+                General Assessment Results
               </Typography>
               <Typography variant="body1" paragraph>
-                {interpretGeminiResults()}
+                {interpretGeneralResults()}
               </Typography>
+              
+              {/* Emotional Scale Visualization */}
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                Emotional Scale Visualization
+              </Typography>
+              <Box sx={{ mb: 4 }}>
+                <Box sx={{ width: '100%', height: 60, display: 'flex', mb: 1 }}>
+                  {Array.from({ length: 22 }).map((_, index) => {
+                    // Create a gradient from red (negative) to green (positive)
+                    const color = index < 7 ? 
+                      `rgb(255, ${Math.floor((index/7) * 255)}, 0)` : 
+                      index < 14 ? 
+                        `rgb(${Math.floor(255 - ((index-7)/7) * 255)}, 255, 0)` : 
+                        `rgb(0, 255, ${Math.floor(((index-14)/8) * 150)})`;                    
+                    return (
+                      <Box 
+                        key={`scale-${index}`} 
+                        sx={{ 
+                          flex: 1, 
+                          height: '100%', 
+                          bgcolor: color,
+                          borderRadius: index === 0 ? '4px 0 0 4px' : index === 21 ? '0 4px 4px 0' : 0,
+                          position: 'relative'
+                        }}
+                      >
+                        {(index + 1) % 3 === 0 && (
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              position: 'absolute', 
+                              bottom: -20, 
+                              left: '50%', 
+                              transform: 'translateX(-50%)',
+                              color: 'text.secondary'
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+                
+                {/* Marker for user's position */}
+                {calculateEmotionalScore() > 0 && (
+                  <Box sx={{ 
+                    position: 'relative', 
+                    width: '100%', 
+                    height: 30,
+                    mt: 3
+                  }}>
+                    <Box sx={{ 
+                      position: 'absolute',
+                      left: `${((calculateEmotionalScore() - 1) / 21) * 100}%`,
+                      transform: 'translateX(-50%)',
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      bgcolor: 'black',
+                      border: '3px solid white',
+                      boxShadow: 3
+                    }} />
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        position: 'absolute',
+                        left: `${((calculateEmotionalScore() - 1) / 21) * 100}%`,
+                        top: 25,
+                        transform: 'translateX(-50%)',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Your score: {calculateEmotionalScore()}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              
+              {/* Spiral Dynamics Visualization */}
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                Spiral Dynamics Visualization
+              </Typography>
+              <Box sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {['Beige', 'Purple', 'Red', 'Blue', 'Orange', 'Green', 'Yellow', 'Turquoise'].map((level, index) => {
+                    const colors = ['#F5F5DC', '#800080', '#FF0000', '#0000FF', '#FFA500', '#008000', '#FFFF00', '#40E0D0'];
+                    const isSelected = spiralAnswers[index];
+                    return (
+                      <Box key={`spiral-vis-${index}`} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ width: 80 }}>{level}</Typography>
+                        <Box 
+                          sx={{ 
+                            flex: 1, 
+                            height: 30, 
+                            bgcolor: isSelected ? colors[index] : `${colors[index]}44`,
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-start',
+                            pl: 1,
+                            border: isSelected ? '2px solid black' : 'none',
+                            boxShadow: isSelected ? 2 : 0
+                          }}
+                        >
+                          {isSelected && (
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: ['Yellow', 'Beige'].includes(level) ? 'black' : 'white',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              Selected
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
               
               <Typography variant="h6" sx={{ mt: 4 }} gutterBottom>
                 Your answers by category:
@@ -507,12 +568,12 @@ Format each question as a direct question that can be answered with yes or no. D
               </Stack>
               
               <Typography variant="subtitle1" sx={{ mt: 3 }} gutterBottom>
-                AI-Generated Questions:
+                General Questions:
               </Typography>
               <Stack spacing={1}>
-                {geminiQuestions.map((question, index) => (
+                {fixedGeneralQuestions.map((question, index) => (
                   <Box 
-                    key={`gemini-${index}`} 
+                    key={`general-${index}`} 
                     sx={{ 
                       p: 2, 
                       borderRadius: 1, 
@@ -524,7 +585,7 @@ Format each question as a direct question that can be answered with yes or no. D
                       {question}
                     </Typography>
                     <Typography variant="body1" fontWeight="bold">
-                      {geminiAnswers[index] ? "Yes" : "No"}
+                      {generalAnswers[index] ? "Yes" : "No"}
                     </Typography>
                   </Box>
                 ))}

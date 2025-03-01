@@ -543,6 +543,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@google/generative-ai@npm:^0.22.0":
+  version: 0.22.0
+  resolution: "@google/generative-ai@npm:0.22.0"
+  checksum: 10c0/2bf6ba5d6960ccd4f8ae5212596907d56a8f3837a533ca367d6674d2ea0308ddd7d081558e5923fc139930640061702a1af2fb5604248790fd276e97ef989183
+  languageName: node
+  linkType: hard
+
 "@huggingface/inference@npm:^3.1.5":
   version: 3.1.5
   resolution: "@huggingface/inference@npm:3.1.5"
@@ -621,6 +628,13 @@ __metadata:
     "@jridgewell/resolve-uri": "npm:^3.1.0"
     "@jridgewell/sourcemap-codec": "npm:^1.4.14"
   checksum: 10c0/3d1ce6ebc69df9682a5a8896b414c6537e428a1d68b02fcc8363b04284a8ca0df04d0ee3013132252ab14f2527bc13bea6526a912ecb5658f0e39fd2860b4df4
+  languageName: node
+  linkType: hard
+
+"@kurkle/color@npm:^0.3.0":
+  version: 0.3.4
+  resolution: "@kurkle/color@npm:0.3.4"
+  checksum: 10c0/0e9fd55c614b005c5f0c4c755bca19ec0293bc7513b4ea3ec1725234f9c2fa81afbc78156baf555c8b9cb0d305619253c3f5bca016067daeebb3d00ebb4ea683
   languageName: node
   linkType: hard
 
@@ -1421,6 +1435,15 @@ __metadata:
     escape-string-regexp: "npm:^1.0.5"
     supports-color: "npm:^5.3.0"
   checksum: 10c0/e6543f02ec877732e3a2d1c3c3323ddb4d39fbab687c23f526e25bd4c6a9bf3b83a696e8c769d078e04e5754921648f7821b2a2acfd16c550435fd630026e073
+  languageName: node
+  linkType: hard
+
+"chart.js@npm:^4.4.8":
+  version: 4.4.8
+  resolution: "chart.js@npm:4.4.8"
+  dependencies:
+    "@kurkle/color": "npm:^0.3.0"
+  checksum: 10c0/4777e3fef7ccfb664c02b79f90e53fb0e46c01293bc56af5ab81aa8ffef4b1ccc675bef948b7efd071a5dd0ebd59c0e95c42ef606f728da8e3ff1741fc2d1df0
   languageName: node
   linkType: hard
 
@@ -3371,6 +3394,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-chartjs-2@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "react-chartjs-2@npm:5.3.0"
+  peerDependencies:
+    chart.js: ^4.1.1
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/4415d40217c084a49f9a936fbd30f67e0e705148e6f8359bec65601033d1076f31085c45793839fc29ec833e6c427b0bf9861a0c54c432c08d35bc9590ffa41a
+  languageName: node
+  linkType: hard
+
 "react-dom@npm:^18.3.1":
   version: 18.3.1
   resolution: "react-dom@npm:18.3.1"
@@ -4233,6 +4266,7 @@ __metadata:
     "@emotion/react": "npm:^11.14.0"
     "@emotion/style": "npm:^0.8.0"
     "@emotion/styled": "npm:^11.14.0"
+    "@google/generative-ai": "npm:^0.22.0"
     "@huggingface/inference": "npm:^3.1.5"
     "@mui/icons-material": "npm:^6.4.1"
     "@mui/material": "npm:^6.4.1"
@@ -4242,12 +4276,14 @@ __metadata:
     "@types/react-dom": "npm:^19.0.3"
     "@types/react-dropzone": "npm:^5.1.0"
     "@vitejs/plugin-react": "npm:^2.2.0"
+    chart.js: "npm:^4.4.8"
     dotenv: "npm:^16.4.5"
     framer-motion: "npm:^12.4.7"
     jwt-decode: "npm:3.1.2"
     npm-run-all: "npm:^4.1.5"
     prettier: "npm:^2.8.2"
     react: "npm:^18.3.1"
+    react-chartjs-2: "npm:^5.3.0"
     react-dom: "npm:^18.3.1"
     react-dropzone: "npm:^14.3.5"
     sass: "npm:^1.57.1"
