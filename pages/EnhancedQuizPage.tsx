@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, Container, Typography, Card, Button, Stack, CircularProgress, LinearProgress } from '@mui/material';
 import { motion, PanInfo, useAnimation } from 'framer-motion';
-
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Define the quiz types for internal tracking
 type QuizType = 'spiralDynamics' | 'emotionalScale' | 'geminiGenerated';
@@ -158,8 +158,42 @@ const EnhancedQuizPage = () => {
 
   // Effect to initialize the quiz when component mounts
   useEffect(() => {
-    initializeQuiz();
+    // Check if there's saved progress in localStorage
+    const savedProgress = localStorage.getItem('quizProgress');
+    if (savedProgress) {
+      const progress = JSON.parse(savedProgress);
+      setCurrentQuestionIndex(progress.currentQuestionIndex);
+      setSpiralAnswers(progress.spiralAnswers);
+      setEmotionalAnswers(progress.emotionalAnswers);
+      setGeneralAnswers(progress.generalAnswers);
+      setShuffledQuestions(progress.shuffledQuestions);
+      setQuizCompleted(progress.quizCompleted);
+    } else {
+      initializeQuiz();
+    }
   }, []);
+  
+  // Effect to save progress to localStorage whenever relevant state changes
+  useEffect(() => {
+    if (shuffledQuestions.length > 0) {
+      const progress = {
+        currentQuestionIndex,
+        spiralAnswers,
+        emotionalAnswers,
+        generalAnswers,
+        shuffledQuestions,
+        quizCompleted
+      };
+      localStorage.setItem('quizProgress', JSON.stringify(progress));
+    }
+  }, [currentQuestionIndex, spiralAnswers, emotionalAnswers, generalAnswers, shuffledQuestions, quizCompleted]);
+  
+  // Effect to handle animation controls after component mount and state updates
+  useEffect(() => {
+    if (shuffledQuestions.length > 0 && !quizCompleted) {
+      controls.start({ x: 0, opacity: 1 });
+    }
+  }, [controls, shuffledQuestions, currentQuestionIndex, quizCompleted]);
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 100;
@@ -205,7 +239,7 @@ const EnhancedQuizPage = () => {
     setTimeout(() => {
       if (currentQuestionIndex < shuffledQuestions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
-        controls.start({ x: 0, opacity: 1 });
+        // Note: controls.start() is now handled in a useEffect hook
       } else {
         setQuizCompleted(true);
       }
@@ -213,6 +247,8 @@ const EnhancedQuizPage = () => {
   };
 
   const resetQuiz = () => {
+    // Clear saved progress from localStorage
+    localStorage.removeItem('quizProgress');
     initializeQuiz();
   };
 
@@ -238,9 +274,9 @@ const EnhancedQuizPage = () => {
         return `rgb(${Math.floor(255 * (1 - normalizedPos))}, 255, 0)`;
       }
     }
-    // Colors for Gemini questions (purple gradient)
+    // Colors for general questions (purple gradient)
     else {
-      const totalQuestions = geminiQuestions.length;
+      const totalQuestions = fixedGeneralQuestions.length;
       const position = question.originalIndex / (totalQuestions - 1 || 1); // Normalized position (0 to 1)
       const intensity = Math.floor(155 + 100 * position); // 155-255 range for a lighter purple
       return `rgb(${intensity}, 0, ${intensity})`;
